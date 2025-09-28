@@ -17,8 +17,8 @@
       min-height: 100vh;
       padding: 20px;
     }
-    h1 { margin-bottom: 10px; font-size: 24px; }
-    p { color: #9aa4b2; font-size: 14px; margin-bottom: 20px; text-align: center; }
+    h1 { margin-bottom: 10px; font-size: 28px; }
+    p { color: #9aa4b2; font-size: 14px; margin-bottom: 20px; text-align: center; max-width: 600px; }
     textarea { width: 100%; max-width: 600px; padding: 12px; border-radius: 8px; border: none; resize: vertical; font-size: 14px; margin-bottom: 12px; background: #1c2233; color: #fff; }
     button { background: linear-gradient(90deg,#7c5cff,#3cc6ff); color: #fff; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,.3); margin: 4px; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -30,7 +30,7 @@
 <body>
 
   <h1>Quizontal AI Image Generator</h1>
-  <p>Type your prompt and click generate. Images are created using your Cloudflare Worker AI.</p>
+  <p>Type your prompt and click Generate. Images are created using your Cloudflare Worker via the backend.</p>
   
   <textarea id="prompt" placeholder="A youtube thumbnail with text Quizontal"></textarea>
   <div class="controls">
@@ -46,6 +46,8 @@
     const promptEl = document.getElementById("prompt");
     const preview = document.getElementById("preview");
 
+    const BACKEND_URL = "https://cors-for-ai.vercel.app"; // <— replace with your deployed backend
+
     async function generate() {
       const prompt = promptEl.value.trim() || "A youtube thumbnail with text Quizontal";
       genBtn.disabled = true;
@@ -53,16 +55,13 @@
       preview.innerHTML = "<p style='color:#9aa4b2'>Generating image...</p>";
 
       try {
-        const res = await fetch("https://quizontal-ai-image.educatelux1.workers.dev", {
+        const res = await fetch(BACKEND_URL, {
           method: "POST",
-          headers: {
-            "Authorization": "Bearer danukaandkusalani",
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt })
         });
 
-        if (!res.ok) throw new Error("Worker Error: " + res.status);
+        if (!res.ok) throw new Error("Backend Error: " + res.status);
 
         const blob = await res.blob();
         const img = document.createElement("img");
@@ -70,11 +69,10 @@
         img.alt = prompt;
         img.style.height = "500px";
 
-        // Clear previous preview and add new image
         preview.innerHTML = "";
         preview.appendChild(img);
 
-        // Add download button
+        // Download button
         const downloadBtn = document.createElement("button");
         downloadBtn.textContent = "Download";
         downloadBtn.onclick = () => {
@@ -101,6 +99,7 @@
       preview.innerHTML = "";
     });
 
+    // Ctrl+Enter shortcut
     promptEl.addEventListener("keydown", e => {
       if (e.ctrlKey && e.key === "Enter") generate();
     });
