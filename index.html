@@ -1,43 +1,58 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI Image Generator — Quizontal</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quizontal AI Image Generator</title>
   <style>
-    body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0f1724;color:#e6eef8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-    .container{max-width:800px;width:100%;text-align:center}
-    h1{margin-bottom:10px;font-size:24px}
-    p{color:#9aa4b2;font-size:14px;margin-bottom:20px}
-    textarea{width:100%;padding:12px;border-radius:8px;border:none;resize:vertical;font-size:14px;margin-bottom:12px;background:#1c2233;color:#fff}
-    button{background:linear-gradient(90deg,#7c5cff,#3cc6ff);color:#fff;padding:12px 20px;border:none;border-radius:8px;cursor:pointer;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .preview{margin-top:20px}
-    img{max-width:100%;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: #0f1724;
+      color: #e6eef8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 10px; font-size: 24px; }
+    p { color: #9aa4b2; font-size: 14px; margin-bottom: 20px; text-align: center; }
+    textarea { width: 100%; max-width: 600px; padding: 12px; border-radius: 8px; border: none; resize: vertical; font-size: 14px; margin-bottom: 12px; background: #1c2233; color: #fff; }
+    button { background: linear-gradient(90deg,#7c5cff,#3cc6ff); color: #fff; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,.3); margin: 4px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .preview { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    img { max-width: 100%; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI Image Generator</h1>
-    <p>Type your prompt and click generate to create AI images using Quizontal Worker.</p>
-    <textarea id="prompt" placeholder="A youtube thumbnail with text Quizontal"></textarea>
-    <br>
+
+  <h1>Quizontal AI Image Generator</h1>
+  <p>Type your prompt and click generate. Images are created using your Cloudflare Worker AI.</p>
+  
+  <textarea id="prompt" placeholder="A youtube thumbnail with text Quizontal"></textarea>
+  <div class="controls">
     <button id="gen">Generate</button>
-    <div class="preview" id="preview"></div>
+    <button id="clear">Clear</button>
   </div>
+
+  <div class="preview" id="preview"></div>
 
   <script>
     const genBtn = document.getElementById("gen");
+    const clearBtn = document.getElementById("clear");
     const promptEl = document.getElementById("prompt");
     const preview = document.getElementById("preview");
 
-    async function generate(){
+    async function generate() {
       const prompt = promptEl.value.trim() || "A youtube thumbnail with text Quizontal";
       genBtn.disabled = true;
       genBtn.textContent = "Generating...";
       preview.innerHTML = "<p style='color:#9aa4b2'>Generating image...</p>";
 
-      try{
+      try {
         const res = await fetch("https://quizontal-ai-image.educatelux1.workers.dev", {
           method: "POST",
           headers: {
@@ -47,26 +62,49 @@
           body: JSON.stringify({ prompt })
         });
 
-        if(!res.ok){
-          throw new Error("Worker Error: " + res.status);
-        }
+        if (!res.ok) throw new Error("Worker Error: " + res.status);
 
         const blob = await res.blob();
         const img = document.createElement("img");
         img.src = URL.createObjectURL(blob);
+        img.alt = prompt;
         img.style.height = "500px";
+
+        // Clear previous preview and add new image
         preview.innerHTML = "";
         preview.appendChild(img);
-      }catch(err){
-        preview.innerHTML = `<p style='color:#ffb4b4'>Error: ${err.message}</p>`;
-      }finally{
+
+        // Add download button
+        const downloadBtn = document.createElement("button");
+        downloadBtn.textContent = "Download";
+        downloadBtn.onclick = () => {
+          const a = document.createElement("a");
+          a.href = img.src;
+          a.download = prompt.replace(/[^a-z0-9]/gi,'_').slice(0,40) + ".jpg";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
+        preview.appendChild(downloadBtn);
+
+      } catch (err) {
+        preview.innerHTML = `<p style="color:#ffb4b4">Error: ${err.message}</p>`;
+      } finally {
         genBtn.disabled = false;
         genBtn.textContent = "Generate";
       }
     }
 
     genBtn.addEventListener("click", generate);
-    promptEl.addEventListener("keydown", e => { if(e.ctrlKey && e.key === "Enter") generate(); });
+    clearBtn.addEventListener("click", () => {
+      promptEl.value = "";
+      preview.innerHTML = "";
+    });
+
+    promptEl.addEventListener("keydown", e => {
+      if (e.ctrlKey && e.key === "Enter") generate();
+    });
   </script>
+
 </body>
 </html>
